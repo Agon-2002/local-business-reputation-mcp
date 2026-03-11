@@ -8,6 +8,7 @@ const configSchema = z.object({
   GOOGLE_REFRESH_TOKEN: z.string().optional(),
   PORT: z.coerce.number().default(8080),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+  OUTSCRAPER_API_KEY: z.string().optional(),
   ENABLE_MOCK_MODE: z.coerce.boolean().default(false),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 });

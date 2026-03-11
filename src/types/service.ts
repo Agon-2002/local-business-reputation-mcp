@@ -1,4 +1,4 @@
-import type { BusinessLocation, Review } from './domain.js';
+import type { BusinessLocation, Review, CompetitorBusiness, CompetitorReviewAnalysis } from './domain.js';
 
 export interface ServiceResult<T> {
   readonly success: boolean;
@@ -45,4 +45,26 @@ export interface IReviewService {
     reviewId: string,
     replyText: string,
   ): Promise<ServiceResult<PostReplyResult>>;
+}
+
+// Competitor analysis
+
+export interface SearchCompetitorsResult {
+  readonly competitors: CompetitorBusiness[];
+}
+
+export interface CompetitorReviewsResult {
+  readonly analyses: CompetitorReviewAnalysis[];
+}
+
+export interface ICompetitorService {
+  searchCompetitors(
+    query: string,
+    limit?: number,
+  ): Promise<ServiceResult<SearchCompetitorsResult>>;
+
+  getCompetitorReviews(
+    placeIds: string[],
+    reviewsPerPlace?: number,
+  ): Promise<ServiceResult<CompetitorReviewsResult>>;
 }

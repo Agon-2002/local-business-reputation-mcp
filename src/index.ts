@@ -8,7 +8,10 @@ import { GoogleAuthService } from './services/google-auth.js';
 import { GoogleApiClient } from './services/google-api-client.js';
 import { ReviewService } from './services/review-service.js';
 import { MockReviewService } from './services/mock-review-service.js';
-import type { IReviewService } from './types/service.js';
+import { CompetitorService } from './services/competitor-service.js';
+import { MockCompetitorService } from './services/mock-competitor-service.js';
+import { OutscraperClient } from './services/outscraper-client.js';
+import type { IReviewService, ICompetitorService } from './types/service.js';
 import { logger } from './utils/logger.js';
 
 config();
@@ -106,12 +109,34 @@ async function createReviewService(): Promise<IReviewService> {
 }
 
 // ============================================================================
+// Competitor Service Initialization
+// ============================================================================
+
+function createCompetitorService(): ICompetitorService | undefined {
+  if (process.env.ENABLE_MOCK_MODE === 'true') {
+    logger.info('Competitor service running in MOCK MODE');
+    return new MockCompetitorService();
+  }
+
+  const apiKey = process.env.OUTSCRAPER_API_KEY;
+  if (!apiKey) {
+    logger.info('OUTSCRAPER_API_KEY not set — competitor analysis disabled');
+    return undefined;
+  }
+
+  const client = new OutscraperClient(apiKey);
+  logger.info('Competitor analysis enabled via Outscraper');
+  return new CompetitorService(client);
+}
+
+// ============================================================================
 // Express App Setup
 // ============================================================================
 
 async function main(): Promise<void> {
   const reviewService = await createReviewService();
-  const server = createMcpServer(reviewService);
+  const competitorService = createCompetitorService();
+  const server = createMcpServer(reviewService, competitorService);
 
   const app = express();
   app.use(express.json());

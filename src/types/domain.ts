@@ -79,3 +79,43 @@ export interface DraftReplyContext {
   tone: string;
   customInstructions?: string;
 }
+
+// Competitor analysis types
+
+export interface CompetitorBusiness {
+  [key: string]: unknown;
+  placeId: string;
+  name: string;
+  fullAddress: string;
+  rating: number;
+  reviewCount: number;
+  phone?: string;
+  website?: string;
+  category?: string;
+}
+
+export interface CompetitorReviewAnalysis {
+  [key: string]: unknown;
+  placeId: string;
+  businessName: string;
+  averageRating: number;
+  totalReviews: number;
+  ratingDistribution: RatingDistribution;
+  topComplaints: string[];
+  topCompliments: string[];
+  recentReviewCount: number;
+}
+
+export interface CompetitorInsight {
+  [key: string]: unknown;
+  type: 'strength' | 'weakness' | 'opportunity';
+  message: string;
+}
+
+export interface CompetitorAnalysisResult {
+  [key: string]: unknown;
+  query: string;
+  competitors: CompetitorReviewAnalysis[];
+  ownBusiness?: CompetitorReviewAnalysis;
+  insights: CompetitorInsight[];
+}

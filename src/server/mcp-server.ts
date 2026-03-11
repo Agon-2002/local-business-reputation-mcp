@@ -1,20 +1,25 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import type { IReviewService } from '../types/service.js';
+import type { IReviewService, ICompetitorService } from '../types/service.js';
 import {
   listLocationsInputSchema,
   getReviewsInputSchema,
   getSummaryInputSchema,
   draftReplyInputSchema,
   postReplyInputSchema,
+  analyzeCompetitorsInputSchema,
 } from '../types/tool-schemas.js';
 import { handleListLocations } from './tools/list-locations.js';
 import { handleGetReviews } from './tools/get-reviews.js';
 import { handleGetSummary } from './tools/get-summary.js';
 import { handleDraftReply } from './tools/draft-reply.js';
 import { handlePostReply } from './tools/post-reply.js';
+import { handleAnalyzeCompetitors } from './tools/analyze-competitors.js';
 
-export function createMcpServer(service: IReviewService): McpServer {
+export function createMcpServer(
+  service: IReviewService,
+  competitorService?: ICompetitorService,
+): McpServer {
   const server = new McpServer({
     name: 'local-business-reputation',
     version: '1.0.0',
@@ -74,6 +79,19 @@ export function createMcpServer(service: IReviewService): McpServer {
     },
     async (input) => handlePostReply(service, input),
   );
+
+  // ---- analyze_competitors ----
+  if (competitorService) {
+    server.registerTool(
+      'analyze_competitors',
+      {
+        title: 'Analyze Competitors',
+        description: 'Search for competing businesses and compare their review profiles. Returns ratings, review counts, top complaints/compliments per competitor, and insights comparing them to your business. Powered by Outscraper (free tier: 500 reviews/month).',
+        inputSchema: analyzeCompetitorsInputSchema,
+      },
+      async (input) => handleAnalyzeCompetitors(competitorService, service, input),
+    );
+  }
 
   // ---- Prompts ----
   server.prompt(

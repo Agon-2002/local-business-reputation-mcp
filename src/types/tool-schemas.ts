@@ -55,3 +55,15 @@ export const postReplyInputSchema = {
   replyText: z.string().min(1).max(4096)
     .describe('The reply text to post (max 4096 characters)'),
 };
+
+// ---- analyze_competitors ----
+export const analyzeCompetitorsInputSchema = {
+  query: z.string()
+    .describe('Search query to find competitors (e.g. "Italian restaurants near 123 Main St, San Francisco")'),
+  businessLocationName: z.string().optional()
+    .describe('Your own location resource name (from list_locations) to include in the comparison'),
+  limit: z.number().int().min(1).max(10).optional().default(5)
+    .describe('Maximum number of competitors to analyze (max 10)'),
+  reviewsPerCompetitor: z.number().int().min(5).max(50).optional().default(20)
+    .describe('Number of reviews to fetch per competitor for analysis (max 50)'),
+};
