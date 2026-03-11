@@ -4,10 +4,10 @@ import { handleGetReviews } from '../../../src/server/tools/get-reviews.js';
 
 describe('get_reviews tool', () => {
   const service = new MockReviewService();
-  const locationName = 'accounts/123/locations/456';
+  const placeId = 'mock-place-001';
 
-  it('returns reviews for a valid location', async () => {
-    const result = await handleGetReviews(service, { locationName });
+  it('returns reviews for a valid business', async () => {
+    const result = await handleGetReviews(service, { placeId });
 
     expect(result.content[0].text).toContain('Showing');
     expect(result.content[0].text).toContain('reviews');
@@ -15,7 +15,7 @@ describe('get_reviews tool', () => {
   });
 
   it('filters by max stars', async () => {
-    const result = await handleGetReviews(service, { locationName, maxStars: 2 });
+    const result = await handleGetReviews(service, { placeId, maxStars: 2 });
     const structured = result.structuredContent as { reviews: Array<{ stars: number }> };
 
     for (const review of structured.reviews) {
@@ -24,7 +24,7 @@ describe('get_reviews tool', () => {
   });
 
   it('filters by min stars', async () => {
-    const result = await handleGetReviews(service, { locationName, minStars: 4 });
+    const result = await handleGetReviews(service, { placeId, minStars: 4 });
     const structured = result.structuredContent as { reviews: Array<{ stars: number }> };
 
     for (const review of structured.reviews) {
@@ -33,7 +33,7 @@ describe('get_reviews tool', () => {
   });
 
   it('filters unreplied only', async () => {
-    const result = await handleGetReviews(service, { locationName, unrepliedOnly: true });
+    const result = await handleGetReviews(service, { placeId, unrepliedOnly: true });
     const structured = result.structuredContent as { reviews: Array<{ hasReply: boolean }> };
 
     for (const review of structured.reviews) {
@@ -41,22 +41,22 @@ describe('get_reviews tool', () => {
     }
   });
 
-  it('returns error for non-existent location', async () => {
-    const result = await handleGetReviews(service, { locationName: 'accounts/999/locations/999' });
+  it('returns error for non-existent business', async () => {
+    const result = await handleGetReviews(service, { placeId: 'non-existent-place' });
 
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toContain('Error');
   });
 
   it('respects pageSize', async () => {
-    const result = await handleGetReviews(service, { locationName, pageSize: 5 });
+    const result = await handleGetReviews(service, { placeId, pageSize: 5 });
     const structured = result.structuredContent as { reviews: unknown[] };
 
     expect(structured.reviews.length).toBeLessThanOrEqual(5);
   });
 
   it('shows average rating in output', async () => {
-    const result = await handleGetReviews(service, { locationName });
+    const result = await handleGetReviews(service, { placeId });
 
     expect(result.content[0].text).toContain('Average rating');
   });

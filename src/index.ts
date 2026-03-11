@@ -4,9 +4,7 @@ import chalk from 'chalk';
 import { config } from 'dotenv';
 
 import { createMcpServer } from './server/mcp-server.js';
-import { GoogleAuthService } from './services/google-auth.js';
-import { GoogleApiClient } from './services/google-api-client.js';
-import { ReviewService } from './services/review-service.js';
+import { OutscraperReviewService } from './services/outscraper-review-service.js';
 import { MockReviewService } from './services/mock-review-service.js';
 import { CompetitorService } from './services/competitor-service.js';
 import { MockCompetitorService } from './services/mock-competitor-service.js';
@@ -17,7 +15,7 @@ import { logger } from './utils/logger.js';
 config();
 
 // ============================================================================
-// Dev Logging Utilities (kept from scaffold)
+// Dev Logging Utilities
 // ============================================================================
 
 const isDev = process.env.NODE_ENV !== 'production';
@@ -72,70 +70,39 @@ function logError(method: string, error: unknown, latencyMs: number): void {
 // Service Initialization
 // ============================================================================
 
-async function createReviewService(): Promise<IReviewService> {
+function createServices(): { reviewService: IReviewService; competitorService: ICompetitorService } {
   if (process.env.ENABLE_MOCK_MODE === 'true') {
-    logger.info('Running in MOCK MODE — no Google API calls will be made');
-    return new MockReviewService();
-  }
-
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    logger.warn('Google credentials not configured. Falling back to mock mode.');
-    logger.warn('Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, or set ENABLE_MOCK_MODE=true');
-    return new MockReviewService();
-  }
-
-  const authService = new GoogleAuthService({
-    clientId,
-    clientSecret,
-    redirectUri: process.env.GOOGLE_REDIRECT_URI,
-    refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
-  });
-
-  try {
-    await authService.initialize();
-    logger.info('Google authentication initialized');
-  } catch (err) {
-    logger.warn('Google auth initialization failed. Falling back to mock mode.', {
-      error: err instanceof Error ? err.message : String(err),
-    });
-    return new MockReviewService();
-  }
-
-  const apiClient = new GoogleApiClient(authService);
-  return new ReviewService(apiClient);
-}
-
-// ============================================================================
-// Competitor Service Initialization
-// ============================================================================
-
-function createCompetitorService(): ICompetitorService | undefined {
-  if (process.env.ENABLE_MOCK_MODE === 'true') {
-    logger.info('Competitor service running in MOCK MODE');
-    return new MockCompetitorService();
+    logger.info('Running in MOCK MODE — no API calls will be made');
+    return {
+      reviewService: new MockReviewService(),
+      competitorService: new MockCompetitorService(),
+    };
   }
 
   const apiKey = process.env.OUTSCRAPER_API_KEY;
   if (!apiKey) {
-    logger.info('OUTSCRAPER_API_KEY not set — competitor analysis disabled');
-    return undefined;
+    logger.warn('OUTSCRAPER_API_KEY not set. Falling back to mock mode.');
+    logger.warn('Set OUTSCRAPER_API_KEY for real data, or set ENABLE_MOCK_MODE=true');
+    return {
+      reviewService: new MockReviewService(),
+      competitorService: new MockCompetitorService(),
+    };
   }
 
   const client = new OutscraperClient(apiKey);
-  logger.info('Competitor analysis enabled via Outscraper');
-  return new CompetitorService(client);
+  logger.info('Services initialized via Outscraper');
+  return {
+    reviewService: new OutscraperReviewService(client),
+    competitorService: new CompetitorService(client),
+  };
 }
 
 // ============================================================================
 // Express App Setup
 // ============================================================================
 
-async function main(): Promise<void> {
-  const reviewService = await createReviewService();
-  const competitorService = createCompetitorService();
+function main(): void {
+  const { reviewService, competitorService } = createServices();
   const server = createMcpServer(reviewService, competitorService);
 
   const app = express();
@@ -216,9 +183,4 @@ async function main(): Promise<void> {
   });
 }
 
-main().catch((err) => {
-  logger.error('Failed to start server', {
-    error: err instanceof Error ? err.message : String(err),
-  });
-  process.exit(1);
-});
+main();

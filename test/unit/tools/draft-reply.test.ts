@@ -4,12 +4,12 @@ import { handleDraftReply } from '../../../src/server/tools/draft-reply.js';
 
 describe('draft_reply tool', () => {
   const service = new MockReviewService();
-  const locationName = 'accounts/123/locations/456';
+  const placeId = 'mock-place-001';
 
   it('returns review context for drafting', async () => {
     const result = await handleDraftReply(service, {
-      locationName,
-      reviewId: 'review-456-006',
+      placeId,
+      reviewId: 'review-mock-place-001-006',
     });
 
     expect(result.content[0].text).toContain('Review Reply Context');
@@ -19,8 +19,8 @@ describe('draft_reply tool', () => {
 
   it('includes tone guidance', async () => {
     const result = await handleDraftReply(service, {
-      locationName,
-      reviewId: 'review-456-006',
+      placeId,
+      reviewId: 'review-mock-place-001-006',
       tone: 'apologetic',
     });
 
@@ -30,8 +30,8 @@ describe('draft_reply tool', () => {
 
   it('includes custom instructions when provided', async () => {
     const result = await handleDraftReply(service, {
-      locationName,
-      reviewId: 'review-456-006',
+      placeId,
+      reviewId: 'review-mock-place-001-006',
       customInstructions: 'Mention our new chef',
     });
 
@@ -40,7 +40,7 @@ describe('draft_reply tool', () => {
 
   it('returns error for non-existent review', async () => {
     const result = await handleDraftReply(service, {
-      locationName,
+      placeId,
       reviewId: 'non-existent-review',
     });
 
@@ -50,19 +50,29 @@ describe('draft_reply tool', () => {
 
   it('returns structured content with review and business data', async () => {
     const result = await handleDraftReply(service, {
-      locationName,
-      reviewId: 'review-456-001',
+      placeId,
+      reviewId: 'review-mock-place-001-001',
       tone: 'grateful',
     });
 
     const structured = result.structuredContent as {
-      review: { reviewId: string; starRating: string };
+      review: { reviewId: string; stars: number };
       businessContext: { businessName: string };
       tone: string;
     };
 
-    expect(structured.review.reviewId).toBe('review-456-001');
+    expect(structured.review.reviewId).toBe('review-mock-place-001-001');
     expect(structured.businessContext.businessName).toBe('Bella Vista Italian Restaurant');
     expect(structured.tone).toBe('grateful');
+  });
+
+  it('suggests manual posting instead of post_reply', async () => {
+    const result = await handleDraftReply(service, {
+      placeId,
+      reviewId: 'review-mock-place-001-001',
+    });
+
+    expect(result.content[0].text).toContain('Google Business Profile dashboard');
+    expect(result.content[0].text).not.toContain('post_reply');
   });
 });

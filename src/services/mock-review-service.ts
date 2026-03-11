@@ -1,12 +1,13 @@
-import type { IReviewService, ServiceResult, ListLocationsResult, ListReviewsResult, PostReplyResult } from '../types/service.js';
+import type { IReviewService, ServiceResult, SearchBusinessesResult, ListReviewsResult } from '../types/service.js';
 import type { BusinessLocation, Review } from '../types/domain.js';
 
 // Deterministic mock data for development and testing
 
 const MOCK_LOCATIONS: BusinessLocation[] = [
   {
-    name: 'accounts/123/locations/456',
+    placeId: 'mock-place-001',
     displayName: 'Bella Vista Italian Restaurant',
+    fullAddress: '123 Main Street, San Francisco, CA 94102, US',
     phone: '+1-555-0101',
     website: 'https://bellavista.example.com',
     address: {
@@ -17,10 +18,13 @@ const MOCK_LOCATIONS: BusinessLocation[] = [
       country: 'US',
     },
     category: 'Italian Restaurant',
+    rating: 3.8,
+    reviewCount: 25,
   },
   {
-    name: 'accounts/123/locations/789',
+    placeId: 'mock-place-002',
     displayName: 'Glow Beauty Salon',
+    fullAddress: '456 Oak Avenue, San Francisco, CA 94110, US',
     phone: '+1-555-0202',
     website: 'https://glowsalon.example.com',
     address: {
@@ -31,10 +35,13 @@ const MOCK_LOCATIONS: BusinessLocation[] = [
       country: 'US',
     },
     category: 'Beauty Salon',
+    rating: 4.2,
+    reviewCount: 25,
   },
   {
-    name: 'accounts/123/locations/012',
+    placeId: 'mock-place-003',
     displayName: 'Bright Smile Dental',
+    fullAddress: '789 Elm Boulevard, Suite 200, San Francisco, CA 94115, US',
     phone: '+1-555-0303',
     website: 'https://brightsmile.example.com',
     address: {
@@ -45,10 +52,12 @@ const MOCK_LOCATIONS: BusinessLocation[] = [
       country: 'US',
     },
     category: 'Dental Clinic',
+    rating: 4.0,
+    reviewCount: 25,
   },
 ];
 
-function generateMockReviews(locationName: string): Review[] {
+function generateMockReviews(placeId: string): Review[] {
   const reviewData = [
     { stars: 5, comment: 'Absolutely amazing experience! The staff was incredibly friendly and professional. Will definitely come back!', name: 'Sarah M.' },
     { stars: 5, comment: 'Best in the city, hands down. The attention to detail is outstanding.', name: 'John D.' },
@@ -77,7 +86,6 @@ function generateMockReviews(locationName: string): Review[] {
     { stars: 3, comment: 'It\'s fine for what it is. Nothing exceptional but gets the job done.', name: 'Angela Y.' },
   ];
 
-  const ratings = ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE'] as const;
   const now = Date.now();
 
   return reviewData.map((data, i) => {
@@ -86,13 +94,11 @@ function generateMockReviews(locationName: string): Review[] {
     const hasReply = i % 4 === 0; // Every 4th review has a reply
 
     return {
-      id: `review-${locationName.split('/').pop()}-${String(i + 1).padStart(3, '0')}`,
-      name: `${locationName}/reviews/review-${String(i + 1).padStart(3, '0')}`,
-      locationName,
+      id: `review-${placeId}-${String(i + 1).padStart(3, '0')}`,
+      placeId,
       reviewerName: data.name,
       isAnonymous: false,
       stars: data.stars,
-      starRating: ratings[data.stars - 1],
       comment: data.comment,
       createdAt,
       updatedAt: createdAt,
@@ -107,40 +113,51 @@ function generateMockReviews(locationName: string): Review[] {
 }
 
 export class MockReviewService implements IReviewService {
-  private readonly reviewsByLocation: Map<string, Review[]>;
+  private readonly reviewsByPlace: Map<string, Review[]>;
 
   constructor() {
-    this.reviewsByLocation = new Map();
+    this.reviewsByPlace = new Map();
     for (const location of MOCK_LOCATIONS) {
-      this.reviewsByLocation.set(location.name, generateMockReviews(location.name));
+      this.reviewsByPlace.set(location.placeId, generateMockReviews(location.placeId));
     }
   }
 
-  async listLocations(): Promise<ServiceResult<ListLocationsResult>> {
+  async searchBusinesses(
+    query: string,
+    limit: number = 5,
+  ): Promise<ServiceResult<SearchBusinessesResult>> {
+    const lowerQuery = query.toLowerCase();
+    const matched = MOCK_LOCATIONS.filter((loc) =>
+      loc.displayName.toLowerCase().includes(lowerQuery)
+      || (loc.category?.toLowerCase().includes(lowerQuery) ?? false)
+      || (loc.fullAddress?.toLowerCase().includes(lowerQuery) ?? false)
+    ).slice(0, limit);
+
+    // If no exact match, return all (simulates broad search)
+    const businesses = matched.length > 0 ? matched : MOCK_LOCATIONS.slice(0, limit);
+
     return {
       success: true,
-      data: { locations: MOCK_LOCATIONS },
+      data: { businesses },
     };
   }
 
   async getReviews(
-    locationName: string,
-    options: { pageSize?: number; pageToken?: string } = {},
+    placeId: string,
+    options: { reviewsLimit?: number } = {},
   ): Promise<ServiceResult<ListReviewsResult>> {
-    const reviews = this.reviewsByLocation.get(locationName);
+    const reviews = this.reviewsByPlace.get(placeId);
 
     if (!reviews) {
       return {
         success: false,
-        error: `Location not found: ${locationName}`,
+        error: `Business not found: ${placeId}`,
         errorCode: 'NOT_FOUND',
       };
     }
 
-    const pageSize = options.pageSize ?? 20;
-    const startIndex = options.pageToken ? parseInt(options.pageToken, 10) : 0;
-    const page = reviews.slice(startIndex, startIndex + pageSize);
-    const hasMore = startIndex + pageSize < reviews.length;
+    const limit = options.reviewsLimit ?? 50;
+    const page = reviews.slice(0, limit);
 
     const totalStars = reviews.reduce((sum, r) => sum + r.stars, 0);
     const averageRating = Math.round((totalStars / reviews.length) * 10) / 10;
@@ -151,68 +168,23 @@ export class MockReviewService implements IReviewService {
         reviews: page,
         averageRating,
         totalReviewCount: reviews.length,
-        nextPageToken: hasMore ? String(startIndex + pageSize) : undefined,
       },
     };
   }
 
   async getBusinessProfile(
-    locationName: string,
+    placeId: string,
   ): Promise<ServiceResult<BusinessLocation>> {
-    const location = MOCK_LOCATIONS.find((loc) => loc.name === locationName);
+    const location = MOCK_LOCATIONS.find((loc) => loc.placeId === placeId);
 
     if (!location) {
       return {
         success: false,
-        error: `Location not found: ${locationName}`,
+        error: `Business not found: ${placeId}`,
         errorCode: 'NOT_FOUND',
       };
     }
 
     return { success: true, data: location };
-  }
-
-  async postReply(
-    locationName: string,
-    reviewId: string,
-    replyText: string,
-  ): Promise<ServiceResult<PostReplyResult>> {
-    const reviews = this.reviewsByLocation.get(locationName);
-
-    if (!reviews) {
-      return {
-        success: false,
-        error: `Location not found: ${locationName}`,
-        errorCode: 'NOT_FOUND',
-      };
-    }
-
-    const review = reviews.find((r) => r.id === reviewId);
-    if (!review) {
-      return {
-        success: false,
-        error: `Review not found: ${reviewId}`,
-        errorCode: 'NOT_FOUND',
-      };
-    }
-
-    // Simulate posting the reply (mutate mock data for session consistency)
-    const index = reviews.indexOf(review);
-    const updatedReview = {
-      ...review,
-      reply: {
-        comment: replyText,
-        updatedAt: new Date().toISOString(),
-      },
-    };
-    reviews[index] = updatedReview;
-
-    return {
-      success: true,
-      data: {
-        reviewId,
-        postedAt: new Date().toISOString(),
-      },
-    };
   }
 }

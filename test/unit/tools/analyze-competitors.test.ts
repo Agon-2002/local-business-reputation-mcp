@@ -31,10 +31,10 @@ describe('analyze_competitors tool', () => {
     expect(structured.competitors[0].averageRating).toBe(4.2);
   });
 
-  it('includes own business comparison when locationName provided', async () => {
+  it('includes own business comparison when ownPlaceId provided', async () => {
     const result = await handleAnalyzeCompetitors(competitorService, reviewService, {
       query: 'Italian restaurants near 123 Main St',
-      businessLocationName: 'accounts/123/locations/456',
+      ownPlaceId: 'mock-place-001',
     });
 
     const structured = result.structuredContent as {
@@ -48,7 +48,7 @@ describe('analyze_competitors tool', () => {
   it('generates insights when comparing to own business', async () => {
     const result = await handleAnalyzeCompetitors(competitorService, reviewService, {
       query: 'Italian restaurants near 123 Main St',
-      businessLocationName: 'accounts/123/locations/456',
+      ownPlaceId: 'mock-place-001',
     });
 
     const structured = result.structuredContent as {

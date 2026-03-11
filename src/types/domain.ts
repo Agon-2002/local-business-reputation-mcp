@@ -1,12 +1,13 @@
-// Application domain types — clean, normalized versions of Google API types
+// Application domain types — provider-agnostic business review types
 
 // Note: We avoid `readonly` on interfaces used as structuredContent
 // because the MCP SDK requires `{ [x: string]: unknown }` compatibility.
 
 export interface BusinessLocation {
   [key: string]: unknown;
-  name: string;         // Full resource path (accounts/x/locations/y)
+  placeId: string;
   displayName: string;
+  fullAddress?: string;
   phone?: string;
   website?: string;
   address?: {
@@ -18,6 +19,8 @@ export interface BusinessLocation {
     country: string;
   };
   category?: string;
+  rating?: number;
+  reviewCount?: number;
 }
 
 export interface ReviewReply {
@@ -29,12 +32,10 @@ export interface ReviewReply {
 export interface Review {
   [key: string]: unknown;
   id: string;
-  name: string;         // Full resource path
-  locationName: string;
+  placeId: string;
   reviewerName: string;
   isAnonymous: boolean;
   stars: number;        // 1-5 numeric
-  starRating: string;   // 'ONE'..'FIVE' string enum
   comment: string;
   createdAt: string;
   updatedAt: string;
@@ -59,7 +60,7 @@ export interface ReviewTrend {
 
 export interface ReviewSummary {
   [key: string]: unknown;
-  locationName: string;
+  placeId: string;
   period: string;
   averageRating: number;
   totalReviews: number;

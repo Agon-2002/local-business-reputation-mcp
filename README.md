@@ -1,6 +1,6 @@
 # Local Business Reputation MCP
 
-MCP server for managing Google Business Profile reviews through AI. Fetch reviews, analyze trends, draft replies, post them directly, and benchmark against competitors.
+MCP server for monitoring and managing local business reviews through AI. Search businesses, fetch reviews, analyze trends, draft replies, and benchmark against competitors — all powered by Google Maps data via Outscraper.
 
 Built for owner-operators of restaurants, salons, dental practices, gyms, and other local service businesses.
 
@@ -8,12 +8,11 @@ Built for owner-operators of restaurants, salons, dental practices, gyms, and ot
 
 | Tool | Description |
 |------|-------------|
-| `list_locations` | List all business locations linked to your Google Business Profile |
+| `search_businesses` | Search for businesses by name, category, or location |
 | `get_reviews` | Fetch reviews with filters (star rating, date range, unreplied only) |
 | `get_summary` | Weekly digest: average rating, trends, top complaints/compliments |
 | `draft_reply` | Get review context and tone guidance for composing a reply |
-| `post_reply` | Post a reply directly to Google (max 4096 chars) |
-| `analyze_competitors` | Compare competitor ratings, reviews, and complaints (via Outscraper) |
+| `analyze_competitors` | Compare competitor ratings, reviews, and complaints |
 
 Plus 2 prompt templates: `review-response` and `weekly-digest`.
 
@@ -33,28 +32,9 @@ npm start
 
 ## Setup
 
-### 1. Google Business Profile API (required for real data)
+### Outscraper API
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com)
-2. Create a project and enable the **Business Profile API**
-3. Go to **Credentials** > Create **OAuth 2.0 Client ID** (Web application)
-4. Add `http://localhost:3000/auth/callback` as an authorized redirect URI
-5. Copy your Client ID and Client Secret to `.env`:
-
-```env
-GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your-client-secret
-```
-
-6. Run the auth script to get your refresh token:
-
-```bash
-npm run auth
-```
-
-This opens your browser for Google consent and saves the tokens locally.
-
-### 2. Outscraper API (optional, for competitor analysis)
+All business and review data comes from [Outscraper](https://outscraper.com), which provides Google Maps data via a simple API.
 
 1. Create a free account at [outscraper.com](https://outscraper.com)
 2. Get your API key from [app.outscraper.com/account/api](https://app.outscraper.com/account/api)
@@ -64,17 +44,13 @@ This opens your browser for Google consent and saves the tokens locally.
 OUTSCRAPER_API_KEY=your-outscraper-api-key
 ```
 
-Free tier includes 500 reviews/month.
+Free tier includes 500 reviews/month — enough for most small businesses.
 
 ## Environment Variables
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `GOOGLE_CLIENT_ID` | Yes* | - | Google OAuth 2.0 Client ID |
-| `GOOGLE_CLIENT_SECRET` | Yes* | - | Google OAuth 2.0 Client Secret |
-| `GOOGLE_REFRESH_TOKEN` | No | - | Pre-configured refresh token |
-| `GOOGLE_REDIRECT_URI` | No | `http://localhost:3000/auth/callback` | OAuth redirect URI |
-| `OUTSCRAPER_API_KEY` | No | - | Outscraper API key for competitor analysis |
+| `OUTSCRAPER_API_KEY` | Yes* | - | Outscraper API key for business and review data |
 | `ENABLE_MOCK_MODE` | No | `false` | Use mock data without any API keys |
 | `PORT` | No | `8080` | Server port |
 | `LOG_LEVEL` | No | `info` | Logging level (debug, info, warn, error) |
@@ -106,15 +82,13 @@ src/
     mcp-server.ts             - Tool and prompt registration
     tools/                    - Individual tool handlers
   services/
-    google-auth.ts            - OAuth 2.0 flow
-    google-api-client.ts      - Google Business Profile API wrapper
-    review-service.ts         - Review service implementation
-    mock-review-service.ts    - Mock service for dev/testing
     outscraper-client.ts      - Outscraper API wrapper
+    outscraper-review-service.ts - Review service (Outscraper-backed)
     competitor-service.ts     - Competitor analysis implementation
+    mock-review-service.ts    - Mock service for dev/testing
     mock-competitor-service.ts - Mock competitor data
   types/                      - TypeScript interfaces and Zod schemas
-  utils/                      - Rate limiter, logger, mappers, helpers
+  utils/                      - Rate limiter, logger, helpers
 ```
 
 ## License

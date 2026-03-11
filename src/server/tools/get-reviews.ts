@@ -1,29 +1,21 @@
 import type { IReviewService } from '../../types/service.js';
 import type { Review } from '../../types/domain.js';
 import { isInStarRange, formatStars } from '../../utils/star-rating.js';
-import type { StarRatingEnum } from '../../utils/constants.js';
 
 export interface GetReviewsInput {
-  locationName: string;
-  starRating?: string;
+  placeId: string;
   minStars?: number;
   maxStars?: number;
   dateFrom?: string;
   dateTo?: string;
   unrepliedOnly?: boolean;
   pageSize?: number;
-  pageToken?: string;
 }
 
 function filterReviews(reviews: Review[], input: GetReviewsInput): Review[] {
   return reviews.filter((review) => {
-    // Star rating exact match
-    if (input.starRating && review.starRating !== input.starRating) {
-      return false;
-    }
-
     // Star range filter
-    if (!isInStarRange(review.starRating as StarRatingEnum, input.minStars, input.maxStars)) {
+    if (!isInStarRange(review.stars, input.minStars, input.maxStars)) {
       return false;
     }
 
@@ -66,9 +58,8 @@ function formatReview(review: Review): string {
 }
 
 export async function handleGetReviews(service: IReviewService, input: GetReviewsInput) {
-  const result = await service.getReviews(input.locationName, {
-    pageSize: 50, // Fetch max to allow client-side filtering
-    pageToken: input.pageToken,
+  const result = await service.getReviews(input.placeId, {
+    reviewsLimit: 50,
   });
 
   if (!result.success || !result.data) {
@@ -103,7 +94,6 @@ export async function handleGetReviews(service: IReviewService, input: GetReview
     reviews: page.map((r) => ({
       reviewId: r.id,
       reviewer: { displayName: r.reviewerName, isAnonymous: r.isAnonymous },
-      starRating: r.starRating,
       stars: r.stars,
       comment: r.comment,
       createTime: r.createdAt,
@@ -113,9 +103,7 @@ export async function handleGetReviews(service: IReviewService, input: GetReview
     })),
     averageRating: result.data.averageRating,
     totalReviewCount: result.data.totalReviewCount,
-    nextPageToken: result.data.nextPageToken,
     filtersApplied: {
-      starRating: input.starRating,
       minStars: input.minStars,
       maxStars: input.maxStars,
       dateFrom: input.dateFrom,

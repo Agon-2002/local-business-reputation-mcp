@@ -14,20 +14,12 @@ configSchema:
   source: code
 
 env:
-  - name: GOOGLE_CLIENT_ID
-    description: "Google OAuth 2.0 Client ID from Google Cloud Console"
-    required: true
-    sensitive: true
-  - name: GOOGLE_CLIENT_SECRET
-    description: "Google OAuth 2.0 Client Secret"
-    required: true
-    sensitive: true
-  - name: GOOGLE_REFRESH_TOKEN
-    description: "Google OAuth 2.0 Refresh Token (obtained via authenticate script)"
+  - name: OUTSCRAPER_API_KEY
+    description: "Outscraper API key for business search and review data (free tier: 500 reviews/month)"
     required: true
     sensitive: true
   - name: ENABLE_MOCK_MODE
-    description: "Set to true to use mock data without Google credentials"
+    description: "Set to true to use mock data without API credentials"
     required: false
     default: "false"
   - name: LOG_LEVEL

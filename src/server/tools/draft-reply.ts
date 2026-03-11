@@ -2,7 +2,7 @@ import type { IReviewService } from '../../types/service.js';
 import { formatStars } from '../../utils/star-rating.js';
 
 export interface DraftReplyInput {
-  locationName: string;
+  placeId: string;
   reviewId: string;
   tone?: 'professional' | 'friendly' | 'apologetic' | 'grateful';
   customInstructions?: string;
@@ -17,7 +17,7 @@ const TONE_GUIDANCE: Record<string, string> = {
 
 export async function handleDraftReply(service: IReviewService, input: DraftReplyInput) {
   // Fetch the specific review
-  const reviewsResult = await service.getReviews(input.locationName, { pageSize: 50 });
+  const reviewsResult = await service.getReviews(input.placeId, { reviewsLimit: 50 });
 
   if (!reviewsResult.success || !reviewsResult.data) {
     return {
@@ -38,7 +38,7 @@ export async function handleDraftReply(service: IReviewService, input: DraftRepl
   }
 
   // Fetch business profile for context
-  const profileResult = await service.getBusinessProfile(input.locationName);
+  const profileResult = await service.getBusinessProfile(input.placeId);
   const businessName = profileResult.success && profileResult.data
     ? profileResult.data.displayName
     : 'the business';
@@ -70,14 +70,13 @@ export async function handleDraftReply(service: IReviewService, input: DraftRepl
     '---',
     '',
     'Please draft a reply to this review based on the context above. Keep it under 4096 characters.',
-    'When you\'re happy with the reply, use the `post_reply` tool to send it.',
+    'You can then post this reply manually through your Google Business Profile dashboard.',
   ].filter((line) => line !== null).join('\n');
 
   const output = {
     review: {
       reviewId: review.id,
       reviewerName: review.reviewerName,
-      starRating: review.starRating,
       stars: review.stars,
       comment: review.comment,
       createTime: review.createdAt,

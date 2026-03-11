@@ -7,44 +7,32 @@ export interface ServiceResult<T> {
   readonly errorCode?: string;
 }
 
-export interface ListLocationsResult {
-  readonly locations: BusinessLocation[];
-  readonly nextPageToken?: string;
+export interface SearchBusinessesResult {
+  readonly businesses: BusinessLocation[];
 }
 
 export interface ListReviewsResult {
   readonly reviews: Review[];
   readonly averageRating?: number;
   readonly totalReviewCount?: number;
-  readonly nextPageToken?: string;
-}
-
-export interface PostReplyResult {
-  readonly reviewId: string;
-  readonly postedAt: string;
 }
 
 export interface IReviewService {
-  listLocations(): Promise<ServiceResult<ListLocationsResult>>;
+  searchBusinesses(
+    query: string,
+    limit?: number,
+  ): Promise<ServiceResult<SearchBusinessesResult>>;
 
   getReviews(
-    locationName: string,
+    placeId: string,
     options?: {
-      pageSize?: number;
-      pageToken?: string;
-      orderBy?: string;
+      reviewsLimit?: number;
     },
   ): Promise<ServiceResult<ListReviewsResult>>;
 
   getBusinessProfile(
-    locationName: string,
+    placeId: string,
   ): Promise<ServiceResult<BusinessLocation>>;
-
-  postReply(
-    locationName: string,
-    reviewId: string,
-    replyText: string,
-  ): Promise<ServiceResult<PostReplyResult>>;
 }
 
 // Competitor analysis

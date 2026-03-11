@@ -3,7 +3,7 @@ import type { CompetitorReviewAnalysis, CompetitorInsight, RatingDistribution } 
 
 export interface AnalyzeCompetitorsInput {
   query: string;
-  businessLocationName?: string;
+  ownPlaceId?: string;
   limit?: number;
   reviewsPerCompetitor?: number;
 }
@@ -11,7 +11,7 @@ export interface AnalyzeCompetitorsInput {
 function buildOwnAnalysis(
   reviews: Array<{ stars: number; comment: string; reply?: unknown; createdAt: string }>,
   businessName: string,
-  locationName: string,
+  placeId: string,
 ): CompetitorReviewAnalysis {
   const dist: RatingDistribution = { one: 0, two: 0, three: 0, four: 0, five: 0 };
   let total = 0;
@@ -33,7 +33,7 @@ function buildOwnAnalysis(
   const recentCount = reviews.filter((r) => new Date(r.createdAt).getTime() > cutoff30d).length;
 
   return {
-    placeId: locationName,
+    placeId,
     businessName,
     averageRating: avg,
     totalReviews: reviews.length,
@@ -125,16 +125,16 @@ export async function handleAnalyzeCompetitors(
 
   // Step 3: Optionally include own business
   let ownBusiness: CompetitorReviewAnalysis | undefined;
-  if (input.businessLocationName) {
-    const ownReviews = await reviewService.getReviews(input.businessLocationName, { pageSize: 50 });
-    const profile = await reviewService.getBusinessProfile(input.businessLocationName);
+  if (input.ownPlaceId) {
+    const ownReviews = await reviewService.getReviews(input.ownPlaceId, { reviewsLimit: 50 });
+    const profile = await reviewService.getBusinessProfile(input.ownPlaceId);
 
     if (ownReviews.success && ownReviews.data) {
       const businessName = profile.success && profile.data ? profile.data.displayName : 'Your Business';
       ownBusiness = buildOwnAnalysis(
         ownReviews.data.reviews,
         businessName,
-        input.businessLocationName,
+        input.ownPlaceId,
       );
     }
   }

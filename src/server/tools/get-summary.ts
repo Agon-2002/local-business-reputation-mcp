@@ -2,7 +2,7 @@ import type { IReviewService } from '../../types/service.js';
 import type { Review, RatingDistribution, ReviewTrend, ReviewSummary } from '../../types/domain.js';
 
 export interface GetSummaryInput {
-  locationName: string;
+  placeId: string;
   period?: '7d' | '14d' | '30d' | '90d';
 }
 
@@ -15,27 +15,11 @@ const PERIOD_DAYS: Record<string, number> = {
 
 async function fetchAllReviews(
   service: IReviewService,
-  locationName: string,
+  placeId: string,
 ): Promise<Review[]> {
-  const allReviews: Review[] = [];
-  let pageToken: string | undefined;
-  let pages = 0;
-  const maxPages = 10; // Safety cap
-
-  do {
-    const result = await service.getReviews(locationName, {
-      pageSize: 50,
-      pageToken,
-    });
-
-    if (!result.success || !result.data) break;
-
-    allReviews.push(...result.data.reviews);
-    pageToken = result.data.nextPageToken;
-    pages++;
-  } while (pageToken && pages < maxPages);
-
-  return allReviews;
+  const result = await service.getReviews(placeId, { reviewsLimit: 200 });
+  if (!result.success || !result.data) return [];
+  return result.data.reviews;
 }
 
 function filterByPeriod(reviews: Review[], days: number): Review[] {
@@ -95,7 +79,6 @@ function extractTopics(reviews: Review[], type: 'complaints' | 'compliments'): s
 
   if (targetReviews.length === 0) return [];
 
-  // Simple keyword frequency analysis
   const keywords: Record<string, number> = {};
   const topicPatterns = type === 'complaints'
     ? [
@@ -127,13 +110,13 @@ function extractTopics(reviews: Review[], type: 'complaints' | 'compliments'): s
 export async function handleGetSummary(service: IReviewService, input: GetSummaryInput) {
   const period = input.period ?? '7d';
   const periodDays = PERIOD_DAYS[period];
-  const allReviews = await fetchAllReviews(service, input.locationName);
+  const allReviews = await fetchAllReviews(service, input.placeId);
 
   if (allReviews.length === 0) {
     return {
       content: [{
         type: 'text' as const,
-        text: 'No reviews found for this location.',
+        text: 'No reviews found for this business.',
       }],
     };
   }
@@ -148,7 +131,7 @@ export async function handleGetSummary(service: IReviewService, input: GetSummar
   const topCompliments = extractTopics(periodReviews, 'compliments');
 
   const summary: ReviewSummary = {
-    locationName: input.locationName,
+    placeId: input.placeId,
     period,
     averageRating,
     totalReviews: periodReviews.length,
