@@ -1,0 +1,36 @@
+version: 1
+runtime: typescript
+entry: src/index.ts
+
+build:
+  install: npm ci
+  command: npm run build
+
+startCommand:
+  type: http
+  command: node dist/index.js
+
+configSchema:
+  source: code
+
+env:
+  - name: GOOGLE_CLIENT_ID
+    description: "Google OAuth 2.0 Client ID from Google Cloud Console"
+    required: true
+    sensitive: true
+  - name: GOOGLE_CLIENT_SECRET
+    description: "Google OAuth 2.0 Client Secret"
+    required: true
+    sensitive: true
+  - name: GOOGLE_REFRESH_TOKEN
+    description: "Google OAuth 2.0 Refresh Token (obtained via authenticate script)"
+    required: true
+    sensitive: true
+  - name: ENABLE_MOCK_MODE
+    description: "Set to true to use mock data without Google credentials"
+    required: false
+    default: "false"
+  - name: LOG_LEVEL
+    description: "Logging level (debug, info, warn, error)"
+    required: false
+    default: "info"
